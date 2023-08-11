@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:learningdart/login.dart' as LoginScreen;
 import 'package:learningdart/polls_screen.dart' as PollsScreen;
 import 'package:learningdart/registration.dart' as RegistrationScreen;
+import 'package:learningdart/authmanager.dart';
 
 void main() => runApp(MyApp());
 
@@ -26,11 +27,12 @@ class MyApp extends StatelessWidget {
 class HomePage extends StatelessWidget {
   final bool
       isLoggedIn; // Add this variable to determine if the user is logged in
-
+  final AuthManager authManager = AuthManager();
   HomePage({required this.isLoggedIn}); // Constructor to pass isLoggedIn value
 
   @override
   Widget build(BuildContext context) {
+    String? authToken = authManager.authToken; // Fetch the token once
     return Scaffold(
       appBar: AppBar(
         title: Text('Home Page'),
@@ -50,7 +52,7 @@ class HomePage extends StatelessWidget {
             ),
             SizedBox(height: 20),
             // Conditionally show the appropriate button based on isLoggedIn
-            if (!isLoggedIn) // Show the button only if not logged in
+            if (authToken != null) // Show the button only if not logged in
               ElevatedButton(
                 child: Text('Go to Registration'),
                 onPressed: () {
@@ -61,7 +63,7 @@ class HomePage extends StatelessWidget {
                   );
                 },
               ),
-            if (!isLoggedIn) // Show the button only if not logged in
+            if (authToken != null) // Show the button only if not logged in
               ElevatedButton(
                 child: Text('Log In'),
                 onPressed: () {

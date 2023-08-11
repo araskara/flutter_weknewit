@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:learningdart/authmanager.dart';
+import 'dart:io' show HttpStatus;
 
 class PollsScreen extends StatefulWidget {
   @override
@@ -130,7 +131,7 @@ class _PollDetailsScreenState extends State<PollDetailsScreen> {
   final authManager = AuthManager();
   String? _voteChoice;
 
-  Future<void> _voteAsync(String choice) async {
+  Future<http.Response?> _voteAsync(String choice) async {
     final authToken = authManager.authToken;
 
     if (authToken != null) {
@@ -144,18 +145,16 @@ class _PollDetailsScreenState extends State<PollDetailsScreen> {
           body: jsonEncode({'voted_yes': choice == 'Yes'}),
         );
 
-        if (response.statusCode == 201) {
-          setState(() {
-            _voteChoice = choice;
-          });
-        } else {
-          // Handle error response
-        }
+        return response;
       } catch (e) {
         // Handle exception
+        print("Error while voting: $e"); // For debugging purposes
+        return null;
       }
     } else {
       // Handle no auth token scenario
+      print("No authentication token found."); // For debugging purposes
+      return null;
     }
   }
 
@@ -218,8 +217,23 @@ class _PollDetailsScreenState extends State<PollDetailsScreen> {
                 ),
                 SizedBox(height: 10), // Provide a bit of space
                 ElevatedButton(
-                  onPressed: () {
-                    // Handle the button press
+                  onPressed: () async {
+                    if (_voteChoice != null) {
+                      final response = await _voteAsync(_voteChoice!);
+
+                      if (response?.statusCode == HttpStatus.created) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text('Vote submitted successfully!')));
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error submitting vote.')));
+                      }
+                    } else {
+                      // If no choice is made, inform the user to choose an option
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text(
+                              'Please select a choice before submitting.')));
+                    }
                   },
                   child: Text('Submit Vote'),
                 ),
