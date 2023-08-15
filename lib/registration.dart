@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:learningdart/login.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'api_utils.dart'; // Import the utility function
+import 'package:learningdart/main.dart';
 
 class RegistrationScreen extends StatefulWidget {
   @override
@@ -32,37 +35,48 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       );
 
       if (response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Registration successful!'),
-          backgroundColor: Colors.green,
-        ));
-
-        // Navigate to Home Page after a short delay to let the SnackBar show
-        Future.delayed(Duration(seconds: 2), () {
-          Navigator.pop(context);
-        });
+        // If registration is successful, show a success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Registration successful!'),
+            backgroundColor: Colors.green,
+          ),
+        );
       } else {
+        // If registration fails, handle the error response
+        // Print response status code and body
+        print('Response status code: ${response.statusCode}');
         print('Response body: ${response.body}');
-        if (response.body.isNotEmpty) {
-          // Only attempt to decode if the body is not empty
-          Map<String, dynamic> responseBody = json.decode(response.body);
-          String error = responseBody.values.first[0];
-          throw Exception(error);
-        } else {
-          throw Exception('Registration failed without a specific reason.');
+
+        if (response.statusCode != 200) {
+          try {
+            // Try to decode the error response body
+            Map<String, dynamic> errorData = json.decode(response.body);
+            if (errorData.containsKey('username')) {
+              // If the error response contains a "username" key, show the corresponding error message
+              String usernameErrorMessage = errorData['username'][0];
+              showApiErrorAlert(
+                  context, usernameErrorMessage); // Show the alert
+            } else if (errorData.containsKey('email')) {
+              // If the error response contains an "email" key, show the corresponding error message
+              String emailErrorMessage = errorData['email'][0];
+              showApiErrorAlert(context, emailErrorMessage); // Show the alert
+            } else {
+              // If the error response doesn't match known keys, show a generic error message
+              showApiErrorAlert(context,
+                  'An error occurred.'); // Show a generic error message
+            }
+          } catch (e) {
+            // Handle any exception that occurs while parsing the response
+            showApiErrorAlert(
+                context, 'An error occurred.'); // Show a generic error message
+          }
         }
       }
     } catch (e) {
-      // Show success message even if there's an error
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Registration successful!'),
-        backgroundColor: Colors.green,
-      ));
-
-      // Navigate to Home Page after a short delay to let the SnackBar show
-      Future.delayed(Duration(seconds: 2), () {
-        Navigator.pop(context);
-      });
+      // Handle any exceptions that occur during the HTTP request
+      showApiErrorAlert(
+          context, 'An error occurred.'); // Show a generic error message
     }
   }
 
@@ -133,6 +147,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   }
                 },
                 child: Text('Register'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (context) => HomePage()),
+                  );
+                },
+                child: Text('Go Back'),
               ),
             ],
           ),

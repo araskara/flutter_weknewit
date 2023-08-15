@@ -25,7 +25,16 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Polls and Registration App',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: HomePage(),
+      home: Consumer<AuthProvider>(
+        builder: (context, authProvider, _) {
+          if (authProvider.isLoggedIn) {
+            return PollsScreen
+                .PollsScreen(); // Navigate to PollsScreen if logged in
+          } else {
+            return HomePage();
+          }
+        },
+      ),
     );
   }
 }
@@ -44,35 +53,24 @@ class HomePage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            //if (isLoggedIn)
             ElevatedButton(
-              child: Text('Logout'),
+              child: Text('Login'), // Change button label
               onPressed: () {
-                authProvider.logout();
-                print('Logout button pressed');
-                Navigator.of(context).push(
+                Navigator.of(context).pushReplacement(
                   MaterialPageRoute(
-                      builder: (context) => LoginScreen.LoginScreen()),
+                    builder: (context) => LoginScreen.LoginScreen(),
+                  ),
                 );
               },
             ),
-            //if (isLoggedIn)
             ElevatedButton(
-              child: Text('Create Poll '),
+              child: Text('Registration'), // Change button label
               onPressed: () {
-                Navigator.of(context).push(
+                Navigator.of(context).pushReplacement(
                   MaterialPageRoute(
-                      builder: (context) => CreatePoll.CreatePollScreen()),
-                );
-              },
-            ),
-            // if (isLoggedIn)
-            ElevatedButton(
-              child: Text('Poll List '),
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                      builder: (context) => PollsScreen.PollsScreen()),
+                    builder: (context) =>
+                        RegistrationScreen.RegistrationScreen(),
+                  ),
                 );
               },
             ),

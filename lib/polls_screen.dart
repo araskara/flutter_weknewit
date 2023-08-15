@@ -3,6 +3,10 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:learningdart/authmanager.dart';
 import 'dart:io' show HttpStatus;
+import 'package:learningdart/createpoll.dart'
+    as CreatePoll; // Import CreatePollScreen if needed
+import 'package:learningdart/main.dart';
+import 'package:provider/provider.dart';
 
 enum VoteChoice { YES, NO }
 
@@ -13,23 +17,11 @@ class PollsScreen extends StatefulWidget {
 
 class _PollsScreenState extends State<PollsScreen> {
   late Future<List<Poll>> _pollsFuture;
-  bool _isLoggedIn = false; // Track user's login status
-  final AuthManager authManager = AuthManager();
 
   @override
   void initState() {
     super.initState();
     _pollsFuture = fetchPolls();
-    _checkUserAuthentication();
-  }
-
-  void _checkUserAuthentication() {
-    String? token = authManager.authToken;
-    if (token != null) {
-      setState(() {
-        _isLoggedIn = true;
-      });
-    }
   }
 
   Future<List<Poll>> fetchPolls() async {
@@ -44,12 +36,45 @@ class _PollsScreenState extends State<PollsScreen> {
     }
   }
 
+  void _logout() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    authProvider.logout();
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+          builder: (context) => HomePage()), // Replace with your main page
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    String? authToken = authManager.authToken; // Fetch the token once
     return Scaffold(
       appBar: AppBar(
         title: Text('Polls List'),
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: <Widget>[
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.blue,
+              ),
+              child: Text(
+                'Drawer Header',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                ),
+              ),
+            ),
+            ListTile(
+              title: Text('Logout'),
+              onTap: _logout,
+            ),
+          ],
+        ),
       ),
       body: FutureBuilder<List<Poll>>(
         future: _pollsFuture,
@@ -86,6 +111,16 @@ class _PollsScreenState extends State<PollsScreen> {
             );
           }
         },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => CreatePoll.CreatePollScreen(),
+            ),
+          );
+        },
+        child: Icon(Icons.add),
       ),
     );
   }

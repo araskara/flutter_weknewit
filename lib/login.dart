@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:learningdart/main.dart';
 import 'dart:convert';
 import 'package:learningdart/polls_screen.dart';
 import 'package:learningdart/authmanager.dart';
@@ -111,6 +112,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 }
               },
               child: Text('Login'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => HomePage()),
+                );
+              },
+              child: Text('Go Back'),
             ),
           ],
         ),
