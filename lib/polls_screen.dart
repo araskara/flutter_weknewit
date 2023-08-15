@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:learningdart/authmanager.dart';
 import 'dart:io' show HttpStatus;
 
+enum VoteChoice { YES, NO }
+
 class PollsScreen extends StatefulWidget {
   @override
   _PollsScreenState createState() => _PollsScreenState();
@@ -128,39 +130,57 @@ class PollDetailsScreen extends StatefulWidget {
 }
 
 class _PollDetailsScreenState extends State<PollDetailsScreen> {
+  bool _isLoggedIn = false;
+  final _formKey = GlobalKey<FormState>();
   final authManager = AuthManager();
-  String? _voteChoice;
+  VoteChoice? _voteChoice;
 
-  Future<http.Response?> _voteAsync(String choice) async {
+  void _checkUserAuthentication() {
+    String? token = authManager.authToken;
+    if (token != null) {
+      setState(() {
+        _isLoggedIn = true;
+      });
+    }
+  }
+
+  Future<http.Response?> _voteAsync(VoteChoice choice) async {
+    final stringChoice = choice == VoteChoice.YES ? 'yes' : 'no';
+
     final authToken = authManager.authToken;
 
-    if (authToken != null) {
-      try {
-        final response = await http.post(
-          Uri.parse('https://wk.up.railway.app/polls/${widget.poll.id}/vote/'),
-          headers: {
-            'Authorization': 'Bearer $authToken',
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode({'voted_yes': choice == 'Yes'}),
-        );
+    if (authToken == null) return null;
 
-        return response;
-      } catch (e) {
-        // Handle exception
-        print("Error while voting: $e"); // For debugging purposes
-        return null;
-      }
+    final response = await http.post(
+      Uri.parse('https://wk.up.railway.app/polls/${widget.poll.id}/vote/'),
+      headers: {
+        'Authorization': 'Token $authToken',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(
+          {'choice': choice.toString().split('.').last.toLowerCase()}),
+    );
+
+    return response;
+  }
+
+  Future<void> _submitVote(VoteChoice choice) async {
+    _voteChoice = choice;
+
+    final response = await _voteAsync(choice);
+
+    if (response?.statusCode == HttpStatus.created) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Vote submitted successfully!')));
     } else {
-      // Handle no auth token scenario
-      print("No authentication token found."); // For debugging purposes
-      return null;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error submitting vote.')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    String? authToken = authManager.authToken; // Fetch the token once
+    String? authToken = authManager.authToken;
     return Scaffold(
       appBar: AppBar(
         title: Text('Poll Details'),
@@ -187,55 +207,17 @@ class _PollDetailsScreenState extends State<PollDetailsScreen> {
                 Text('Proof Link: ${widget.poll.proofLink!}'),
               SizedBox(height: 20),
               if (authToken != null) ...[
-                Theme(
-                  data: Theme.of(context).copyWith(hintColor: Colors.black),
-                  child: RadioListTile<String>(
-                    title: Text('Yes'),
-                    value: 'Yes',
-                    groupValue: _voteChoice,
-                    onChanged: (value) async {
-                      setState(() {
-                        _voteChoice = value;
-                      });
-                      await _voteAsync(value!);
-                    },
-                  ),
-                ),
-                Theme(
-                  data: Theme.of(context).copyWith(hintColor: Colors.black),
-                  child: RadioListTile<String>(
-                    title: Text('No'),
-                    value: 'No',
-                    groupValue: _voteChoice,
-                    onChanged: (value) async {
-                      setState(() {
-                        _voteChoice = value;
-                      });
-                      await _voteAsync(value!);
-                    },
-                  ),
-                ),
-                SizedBox(height: 10), // Provide a bit of space
-                ElevatedButton(
-                  onPressed: () async {
-                    if (_voteChoice != null) {
-                      final response = await _voteAsync(_voteChoice!);
-
-                      if (response?.statusCode == HttpStatus.created) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text('Vote submitted successfully!')));
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Error submitting vote.')));
-                      }
-                    } else {
-                      // If no choice is made, inform the user to choose an option
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: Text(
-                              'Please select a choice before submitting.')));
-                    }
-                  },
-                  child: Text('Submit Vote'),
+                Row(
+                  children: <Widget>[
+                    ElevatedButton(
+                      child: Text('Yes'),
+                      onPressed: () => _submitVote(VoteChoice.YES),
+                    ),
+                    ElevatedButton(
+                      child: Text('No'),
+                      onPressed: () => _submitVote(VoteChoice.NO),
+                    ),
+                  ],
                 ),
               ],
             ],
@@ -250,14 +232,13 @@ class Vote {
   final int id;
   final int user;
   final int poll;
-  final bool
-      votedYes; // Add this field to indicate whether the user voted Yes or No
+  final String choice; // changed from votedYes to choice
 
   Vote({
     required this.id,
     required this.user,
     required this.poll,
-    required this.votedYes,
+    required this.choice, // changed here too
   });
 
   factory Vote.fromJson(Map<String, dynamic> json) {
@@ -265,7 +246,7 @@ class Vote {
       id: json['id'],
       user: json['user'],
       poll: json['poll'],
-      votedYes: json['voted_yes'],
+      choice: json['choice'], // and here
     );
   }
 }

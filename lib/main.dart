@@ -1,38 +1,41 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import 'auth_provider.dart'; // Import the AuthProvider class
 import 'package:learningdart/login.dart' as LoginScreen;
-import 'package:learningdart/polls_screen.dart' as PollsScreen;
 import 'package:learningdart/registration.dart' as RegistrationScreen;
-import 'package:learningdart/authmanager.dart';
+import 'package:learningdart/polls_screen.dart' as PollsScreen;
+import 'package:learningdart/createpoll.dart' as CreatePoll;
+import 'package:learningdart/logout.dart' as LogoutScreen;
+import 'package:flutter/foundation.dart';
 
-void main() => runApp(MyApp());
+void main() {
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => AuthProvider(),
+      child: MyApp(),
+    ),
+  );
+}
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key})
-      : super(key: key); // Add this line for the const constructor
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Polls and Registration App',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: HomePage(
-          isLoggedIn: false), // Pass isLoggedIn based on user authentication
+      home: HomePage(),
     );
   }
 }
 
 class HomePage extends StatelessWidget {
-  final bool
-      isLoggedIn; // Add this variable to determine if the user is logged in
-  final AuthManager authManager = AuthManager();
-  HomePage({required this.isLoggedIn}); // Constructor to pass isLoggedIn value
-
   @override
   Widget build(BuildContext context) {
-    String? authToken = authManager.authToken; // Fetch the token once
+    final authProvider = Provider.of<AuthProvider>(context);
+    final isLoggedIn = authProvider.isLoggedIn;
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Home Page'),
@@ -41,8 +44,31 @@ class HomePage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
+            //if (isLoggedIn)
             ElevatedButton(
-              child: Text('See Polls List'),
+              child: Text('Logout'),
+              onPressed: () {
+                authProvider.logout();
+                print('Logout button pressed');
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (context) => LoginScreen.LoginScreen()),
+                );
+              },
+            ),
+            //if (isLoggedIn)
+            ElevatedButton(
+              child: Text('Create Poll '),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (context) => CreatePoll.CreatePollScreen()),
+                );
+              },
+            ),
+            // if (isLoggedIn)
+            ElevatedButton(
+              child: Text('Poll List '),
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
@@ -50,32 +76,27 @@ class HomePage extends StatelessWidget {
                 );
               },
             ),
-            SizedBox(height: 20),
-            // Conditionally show the appropriate button based on isLoggedIn
-            if (authToken != null) // Show the button only if not logged in
-              ElevatedButton(
-                child: Text('Go to Registration'),
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                        builder: (context) =>
-                            RegistrationScreen.RegistrationScreen()),
-                  );
-                },
-              ),
-            if (authToken != null) // Show the button only if not logged in
-              ElevatedButton(
-                child: Text('Log In'),
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                        builder: (context) => LoginScreen.LoginScreen()),
-                  );
-                },
-              ),
           ],
         ),
       ),
     );
+  }
+}
+
+class AuthProvider with ChangeNotifier {
+  bool _isLoggedIn = false;
+
+  bool get isLoggedIn => _isLoggedIn;
+
+  void login() {
+    // Logic for logging in
+    _isLoggedIn = true;
+    notifyListeners();
+  }
+
+  void logout() {
+    // Logic for logging out
+    _isLoggedIn = false;
+    notifyListeners();
   }
 }
