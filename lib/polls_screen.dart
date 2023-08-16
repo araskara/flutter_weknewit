@@ -10,6 +10,17 @@ import 'package:provider/provider.dart';
 
 enum VoteChoice { YES, NO }
 
+String voteChoiceToString(VoteChoice choice) {
+  switch (choice) {
+    case VoteChoice.YES:
+      return "yes";
+    case VoteChoice.NO:
+      return "no";
+    default:
+      throw ArgumentError('Unknown VoteChoice: $choice');
+  }
+}
+
 class PollsScreen extends StatefulWidget {
   @override
   _PollsScreenState createState() => _PollsScreenState();
@@ -179,43 +190,43 @@ class _PollDetailsScreenState extends State<PollDetailsScreen> {
     }
   }
 
-  Future<http.Response?> _voteAsync(VoteChoice choice) async {
-    final stringChoice = choice == VoteChoice.YES ? 'yes' : 'no';
+  Future<void> _submitVote(VoteChoice choice) async {
+    _voteChoice = choice;
 
-    final authToken = authManager.authToken;
-
-    if (authToken == null) return null;
+    final authToken = authManager.authToken; // Get token from your AuthManager
 
     final response = await http.post(
-      Uri.parse('https://wk.up.railway.app/polls/${widget.poll.id}/vote/'),
+      Uri.parse(
+          'https://wk.up.railway.app/polls/${widget.poll.id}/vote/'), // Modify with your voting endpoint
       headers: {
         'Authorization': 'Token $authToken',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode(
-          {'choice': choice.toString().split('.').last.toLowerCase()}),
+      body: jsonEncode({
+        'poll': widget
+            .poll.id, // Assuming you have poll ID available in widget.poll.id
+        'choice': voteChoiceToString(choice),
+      }),
     );
 
-    return response;
-  }
-
-  Future<void> _submitVote(VoteChoice choice) async {
-    _voteChoice = choice;
-
-    final response = await _voteAsync(choice);
-
-    if (response?.statusCode == HttpStatus.created) {
+    if (response.statusCode == HttpStatus.created) {
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Vote submitted successfully!')));
+        SnackBar(content: Text('Vote submitted successfully!')),
+      );
     } else {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error submitting vote.')));
+      print('Response Status: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error submitting vote.')),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     String? authToken = authManager.authToken;
+    //int? userId = authManager.getUserIdFromToken();
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Poll Details'),
@@ -223,6 +234,7 @@ class _PollDetailsScreenState extends State<PollDetailsScreen> {
       body: Padding(
         padding: EdgeInsets.all(16.0),
         child: SingleChildScrollView(
+          // Wrap the Column with a SingleChildScrollView
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -243,6 +255,8 @@ class _PollDetailsScreenState extends State<PollDetailsScreen> {
               SizedBox(height: 20),
               if (authToken != null) ...[
                 Row(
+                  mainAxisAlignment: MainAxisAlignment
+                      .spaceEvenly, // To evenly distribute space between buttons
                   children: <Widget>[
                     ElevatedButton(
                       child: Text('Yes'),
@@ -265,13 +279,11 @@ class _PollDetailsScreenState extends State<PollDetailsScreen> {
 
 class Vote {
   final int id;
-  final int user;
   final int poll;
   final String choice; // changed from votedYes to choice
 
   Vote({
     required this.id,
-    required this.user,
     required this.poll,
     required this.choice, // changed here too
   });
@@ -279,7 +291,6 @@ class Vote {
   factory Vote.fromJson(Map<String, dynamic> json) {
     return Vote(
       id: json['id'],
-      user: json['user'],
       poll: json['poll'],
       choice: json['choice'], // and here
     );

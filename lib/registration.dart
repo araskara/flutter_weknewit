@@ -34,7 +34,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         }),
       );
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 201 ||
+          response.statusCode == 200 ||
+          response.statusCode == 204) {
         // If registration is successful, show a success message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -48,7 +50,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         print('Response status code: ${response.statusCode}');
         print('Response body: ${response.body}');
 
-        if (response.statusCode != 200) {
+        if (response.statusCode != 201 ||
+            response.statusCode != 200 ||
+            response.statusCode != 204) {
           try {
             // Try to decode the error response body
             Map<String, dynamic> errorData = json.decode(response.body);

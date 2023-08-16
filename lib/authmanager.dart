@@ -1,11 +1,5 @@
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-
-Future<SharedPreferences> getPrefs() async {
-  return await SharedPreferences.getInstance();
-}
 
 class AuthManager {
   static final AuthManager _instance = AuthManager._internal();
@@ -23,6 +17,20 @@ class AuthManager {
   }
 
   String? get authToken => _prefs?.getString('auth_token');
+
+  int? getUserIdFromToken() {
+    final token = authToken;
+    if (token != null) {
+      final tokenParts = token.split('.');
+      if (tokenParts.length == 3) {
+        final payloadBase64 = tokenParts[1];
+        final payload =
+            json.decode(utf8.decode(base64Url.decode(payloadBase64)));
+        return payload['user_id'];
+      }
+    }
+    return null;
+  }
 
   Future<void> setAuthToken(String token) async {
     await _prefs?.setString('auth_token', token);
