@@ -7,6 +7,7 @@ import 'package:learningdart/createpoll.dart'
     as CreatePoll; // Import CreatePollScreen if needed
 import 'package:learningdart/main.dart';
 import 'package:provider/provider.dart';
+import 'package:learningdart/profile.dart';
 
 enum VoteChoice { YES, NO }
 
@@ -84,6 +85,14 @@ class _PollsScreenState extends State<PollsScreen> {
               title: Text('Logout'),
               onTap: _logout,
             ),
+            ListTile(
+              title: Text('My Profile'),
+              onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (context) => UserProfileScreen(),
+                ));
+              },
+            ), // This ListTile was outside before
           ],
         ),
       ),
