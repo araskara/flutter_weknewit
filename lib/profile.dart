@@ -116,7 +116,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     children: [
                       ...snapshot.data!['votes']
                           .map((vote) => ListTile(
-                                title: Text('Vote for Poll ${vote['poll']}'),
+                                title:
+                                    Text('Vote for Poll: ${vote['poll_text']}'),
                                 subtitle: Text('Choice: ${vote['choice']}'),
                               ))
                           .toList(), // Convert map to list
