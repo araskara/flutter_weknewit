@@ -116,9 +116,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     children: [
                       ...snapshot.data!['votes']
                           .map((vote) => ListTile(
-                                title:
-                                    Text('Vote for Poll: ${vote['poll_text']}'),
-                                subtitle: Text('Choice: ${vote['choice']}'),
+                                title: Text('Vote for Poll ${vote['poll']}'),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    Text('Choice: ${vote['choice']}'),
+                                    Text(
+                                        'Yes: ${vote['yes_percentage']}%, No: ${vote['no_percentage']}%'),
+                                  ],
+                                ),
                               ))
                           .toList(), // Convert map to list
                     ],

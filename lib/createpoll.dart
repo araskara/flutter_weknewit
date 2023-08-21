@@ -16,6 +16,14 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
   final AuthManager authManager = AuthManager();
 
   String _question = '';
+  String _category = '';
+  List<String> _categories = [
+    'Politics',
+    'Sport',
+    'Science',
+    'Art',
+    'others'
+  ]; // add more as needed
   DateTime _voteDeadline = DateTime.now();
   DateTime _pollDeadline = DateTime.now().add(Duration(days: 1));
   String _referenceLink = '';
@@ -43,6 +51,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
         },
         body: jsonEncode({
           'question': _question,
+          'category': _category,
           'reference_link': _referenceLink,
           'proof_link': _proofLink,
           'poll_deadline': _pollDeadline.toIso8601String(),
@@ -84,6 +93,27 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                   _question = value!;
                 },
               ),
+              DropdownButtonFormField<String>(
+                value: _category.isEmpty ? null : _category,
+                decoration: InputDecoration(labelText: 'Category'),
+                items: _categories.map((String category) {
+                  return DropdownMenuItem<String>(
+                    value: category,
+                    child: Text(category),
+                  );
+                }).toList(),
+                onChanged: (newValue) {
+                  setState(() {
+                    _category = newValue!;
+                  });
+                },
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please choose a category.';
+                  }
+                  return null;
+                },
+              ),
               TextFormField(
                 decoration:
                     InputDecoration(labelText: 'Reference Link (optional)'),
@@ -97,7 +127,6 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                   _proofLink = value!;
                 },
               ),
-
               ElevatedButton(
                 child: Text(_voteDeadline == null
                     ? 'Pick Vote Deadline'
@@ -118,12 +147,12 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
               ),
               ElevatedButton(
                 child: Text(_pollDeadline == null
-                    ? 'Pick Poll Deadlin'
+                    ? 'Pick Poll Deadline'
                     : 'Poll Deadline: ${DateFormat.yMd().format(_pollDeadline)}'),
                 onPressed: () async {
                   final picked = await showDatePicker(
                     context: context,
-                    initialDate: _voteDeadline,
+                    initialDate: _pollDeadline,
                     firstDate: DateTime.now(),
                     lastDate: DateTime.now().add(Duration(days: 365)),
                   );
@@ -134,7 +163,6 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                   }
                 },
               ),
-              // Similarly add for _pollDeadline
               ElevatedButton(
                 onPressed: _submitForm,
                 child: Text('Create Poll'),
