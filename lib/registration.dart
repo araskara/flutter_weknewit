@@ -44,6 +44,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             backgroundColor: Colors.green,
           ),
         );
+        // Navigate to Login Screen after a short delay to let the SnackBar show
+        Future.delayed(Duration(seconds: 2), () {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => LoginScreen()),
+          );
+        });
       } else {
         // If registration fails, handle the error response
         // Print response status code and body

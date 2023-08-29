@@ -8,6 +8,7 @@ import 'package:learningdart/createpoll.dart'
 import 'package:learningdart/main.dart';
 import 'package:provider/provider.dart';
 import 'package:learningdart/profile.dart';
+import 'package:learningdart/scoreslist.dart';
 
 enum VoteChoice { YES, NO }
 
@@ -92,7 +93,16 @@ class _PollsScreenState extends State<PollsScreen> {
                   builder: (context) => UserProfileScreen(),
                 ));
               },
-            ), // This ListTile was outside before
+            ),
+            ListTile(
+              // This ListTile was outside before and now is inside the children list
+              title: Text('Scores List'),
+              onTap: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (context) => UsersListScore(),
+                ));
+              },
+            ),
           ],
         ),
       ),
