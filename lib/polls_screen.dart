@@ -143,12 +143,17 @@ class _PollsScreenState extends State<PollsScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.of(context).push(
+        onPressed: () async {
+          await Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => CreatePoll.CreatePollScreen(),
             ),
           );
+
+          // Refresh polls when you come back from the CreatePollScreen
+          setState(() {
+            _pollsFuture = fetchPolls();
+          });
         },
         child: Icon(Icons.add),
       ),
