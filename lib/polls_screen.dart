@@ -3,8 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:learningdart/authmanager.dart';
 import 'dart:io' show HttpStatus;
-import 'package:learningdart/createpoll.dart'
-    as CreatePoll; // Import CreatePollScreen if needed
+import 'package:learningdart/createpoll.dart' as CreatePoll;
 import 'package:learningdart/main.dart';
 import 'package:provider/provider.dart';
 import 'package:learningdart/profile.dart';
@@ -54,8 +53,7 @@ class _PollsScreenState extends State<PollsScreen> {
     authProvider.logout();
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(
-          builder: (context) => HomePage()), // Replace with your main page
+      MaterialPageRoute(builder: (context) => HomePage()),
       (route) => false,
     );
   }
@@ -95,7 +93,6 @@ class _PollsScreenState extends State<PollsScreen> {
               },
             ),
             ListTile(
-              // This ListTile was outside before and now is inside the children list
               title: Text('Scores List'),
               onTap: () {
                 Navigator.of(context).push(MaterialPageRoute(
@@ -150,7 +147,7 @@ class _PollsScreenState extends State<PollsScreen> {
             ),
           );
 
-          // Refresh polls when you come back from the CreatePollScreen
+          // Refresh polls when back from the CreatePollScreen
           setState(() {
             _pollsFuture = fetchPolls();
           });
@@ -220,15 +217,13 @@ class _PollDetailsScreenState extends State<PollDetailsScreen> {
     final authToken = authManager.authToken; // Get token from your AuthManager
 
     final response = await http.post(
-      Uri.parse(
-          'https://wk.up.railway.app/polls/${widget.poll.id}/vote/'), // Modify with your voting endpoint
+      Uri.parse('https://wk.up.railway.app/polls/${widget.poll.id}/vote/'),
       headers: {
         'Authorization': 'Token $authToken',
         'Content-Type': 'application/json',
       },
       body: jsonEncode({
-        'poll': widget
-            .poll.id, // Assuming you have poll ID available in widget.poll.id
+        'poll': widget.poll.id, // Assuming poll ID available in widget.poll.id
         'choice': voteChoiceToString(choice),
       }),
     );
@@ -304,19 +299,19 @@ class _PollDetailsScreenState extends State<PollDetailsScreen> {
 class Vote {
   final int id;
   final int poll;
-  final String choice; // changed from votedYes to choice
+  final String choice; // changed from voted Yes to choice
 
   Vote({
     required this.id,
     required this.poll,
-    required this.choice, // changed here too
+    required this.choice,
   });
 
   factory Vote.fromJson(Map<String, dynamic> json) {
     return Vote(
       id: json['id'],
       poll: json['poll'],
-      choice: json['choice'], // and here
+      choice: json['choice'],
     );
   }
 }

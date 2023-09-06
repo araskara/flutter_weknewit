@@ -60,7 +60,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
       );
 
       if (response.statusCode == 201) {
-        // Poll created successfully
+        // Poll created successfullyv
         Navigator.of(context).pop();
       } else {
         // Handle error
@@ -130,36 +130,62 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
               ElevatedButton(
                 child: Text(_voteDeadline == null
                     ? 'Pick Vote Deadline'
-                    : 'Vote Deadline: ${DateFormat.yMd().format(_voteDeadline)}'),
+                    : 'Vote Deadline: ${DateFormat.yMd().add_jm().format(_voteDeadline)}'), // Edited to show time
                 onPressed: () async {
-                  final picked = await showDatePicker(
+                  final datePicked = await showDatePicker(
                     context: context,
                     initialDate: _voteDeadline,
                     firstDate: DateTime.now(),
                     lastDate: DateTime.now().add(Duration(days: 365)),
                   );
-                  if (picked != null && picked != _voteDeadline) {
-                    setState(() {
-                      _voteDeadline = picked;
-                    });
+                  if (datePicked != null) {
+                    final timePicked = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay.fromDateTime(_voteDeadline),
+                    );
+                    if (timePicked != null) {
+                      final DateTime combinedDateTime = DateTime(
+                        datePicked.year,
+                        datePicked.month,
+                        datePicked.day,
+                        timePicked.hour,
+                        timePicked.minute,
+                      );
+                      setState(() {
+                        _voteDeadline = combinedDateTime;
+                      });
+                    }
                   }
                 },
               ),
               ElevatedButton(
                 child: Text(_pollDeadline == null
                     ? 'Pick Poll Deadline'
-                    : 'Poll Deadline: ${DateFormat.yMd().format(_pollDeadline)}'),
+                    : 'Poll Deadline: ${DateFormat.yMd().add_jm().format(_pollDeadline)}'),
                 onPressed: () async {
-                  final picked = await showDatePicker(
+                  final datePicked = await showDatePicker(
                     context: context,
                     initialDate: _pollDeadline,
                     firstDate: DateTime.now(),
                     lastDate: DateTime.now().add(Duration(days: 365)),
                   );
-                  if (picked != null && picked != _pollDeadline) {
-                    setState(() {
-                      _pollDeadline = picked;
-                    });
+                  if (datePicked != null) {
+                    final timePicked = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay.fromDateTime(_pollDeadline),
+                    );
+                    if (timePicked != null) {
+                      final DateTime combinedDateTime = DateTime(
+                        datePicked.year,
+                        datePicked.month,
+                        datePicked.day,
+                        timePicked.hour,
+                        timePicked.minute,
+                      );
+                      setState(() {
+                        _pollDeadline = combinedDateTime;
+                      });
+                    }
                   }
                 },
               ),
