@@ -8,6 +8,7 @@ import 'package:learningdart/main.dart';
 import 'package:provider/provider.dart';
 import 'package:learningdart/profile.dart';
 import 'package:learningdart/scoreslist.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 enum VoteChoice { YES, NO }
 
@@ -165,6 +166,8 @@ class Poll {
   final String pollDeadline;
   final String correctAnswer;
   final String? proofLink;
+  final double yesPercentage;
+  final double noPercentage;
 
   Poll({
     required this.id,
@@ -173,6 +176,8 @@ class Poll {
     required this.pollDeadline,
     required this.correctAnswer,
     this.proofLink,
+    required this.yesPercentage,
+    required this.noPercentage,
   });
 
   factory Poll.fromJson(Map<String, dynamic> json) {
@@ -183,6 +188,8 @@ class Poll {
       pollDeadline: json['poll_deadline'],
       correctAnswer: json['correct_answer'],
       proofLink: json['proof_link'],
+      yesPercentage: json['yes_percentage'].toDouble(),
+      noPercentage: json['no_percentage'].toDouble(),
     );
   }
 }
@@ -266,11 +273,33 @@ class _PollDetailsScreenState extends State<PollDetailsScreen> {
               SizedBox(height: 10),
               Text('Poll Deadline: ${widget.poll.pollDeadline}'),
               SizedBox(height: 10),
-              if (authToken != null)
+              /*if (authToken != null)
                 Text('Correct Answer: ${widget.poll.correctAnswer}'),
-              SizedBox(height: 20),
+              SizedBox(height: 20),*/
               if (widget.poll.proofLink != null)
                 Text('Proof Link: ${widget.poll.proofLink!}'),
+              Container(
+                height: 200,
+                child: PieChart(
+                  PieChartData(
+                    sections: [
+                      PieChartSectionData(
+                        title: "Yes",
+                        value: widget.poll.yesPercentage,
+                        color: Colors.green,
+                      ),
+                      PieChartSectionData(
+                        title: "No",
+                        value: widget.poll.noPercentage,
+                        color: Colors.red,
+                      ),
+                    ],
+                    sectionsSpace: 0,
+                    centerSpaceRadius: 40,
+                    borderData: FlBorderData(show: false),
+                  ),
+                ),
+              ),
               SizedBox(height: 20),
               if (authToken != null) ...[
                 Row(
