@@ -30,6 +30,51 @@ class PollsScreen extends StatefulWidget {
 
 class _PollsScreenState extends State<PollsScreen> {
   late Future<List<Poll>> _pollsFuture;
+  bool _isLoggedIn = false;
+  final _formKey = GlobalKey<FormState>();
+  final authManager = AuthManager();
+  VoteChoice? _voteChoice;
+
+  void _checkUserAuthentication() {
+    String? token = authManager.authToken;
+    if (token != null) {
+      setState(() {
+        _isLoggedIn = true;
+      });
+    }
+  }
+
+  Future<void> _submitVote(VoteChoice choice, int pollId) async {
+    _voteChoice = choice;
+    final authToken = authManager.authToken;
+
+    final response = await http.post(
+      Uri.parse('https://wk.up.railway.app/polls/$pollId/vote/'),
+      headers: {
+        'Authorization': 'Token $authToken',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'poll': pollId,
+        'choice': voteChoiceToString(choice),
+      }),
+    );
+
+    // Handle response
+    if (response.statusCode == HttpStatus.created) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Vote submitted successfully!')),
+      );
+    } else {
+      print('Response Status: ${response.statusCode}');
+      print('Response Body: ${response.body}');
+      var responseBody = jsonDecode(response.body);
+      var errorMessage = responseBody['error'] ?? 'Error submitting vote.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -119,20 +164,56 @@ class _PollsScreenState extends State<PollsScreen> {
               itemBuilder: (context, index) {
                 final poll = snapshot.data![index];
                 return ListTile(
-                  title: Text(poll.question),
-                  subtitle: Text('Vote Deadline: ${poll.voteDeadline}'),
-                  trailing: SizedBox(
-                    width: 100,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => PollDetailsScreen(poll: poll),
+                  contentPadding:
+                      EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
+                  title: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    PollDetailsScreen(poll: poll),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            poll.question,
+                            style: TextStyle(
+                                fontSize: 16.0), // adjust the style as needed
                           ),
-                        );
-                      },
-                      child: Text('View Details'),
-                    ),
+                        ),
+                      ),
+                      Builder(
+                        builder: (context) {
+                          String? authToken = AuthManager().authToken;
+                          if (authToken != null) {
+                            return Row(
+                              children: [
+                                ElevatedButton(
+                                  child: Text('Yes'),
+                                  onPressed: () =>
+                                      _submitVote(VoteChoice.YES, poll.id),
+                                ),
+                                SizedBox(
+                                  width:
+                                      8.0, // to give some space between the buttons
+                                ),
+                                ElevatedButton(
+                                  child: Text('No'),
+                                  onPressed: () =>
+                                      _submitVote(VoteChoice.NO, poll.id),
+                                ),
+                              ],
+                            );
+                          } else {
+                            return Container();
+                          }
+                        },
+                      ),
+                    ],
                   ),
                 );
               },
@@ -218,36 +299,6 @@ class _PollDetailsScreenState extends State<PollDetailsScreen> {
     }
   }
 
-  Future<void> _submitVote(VoteChoice choice) async {
-    _voteChoice = choice;
-
-    final authToken = authManager.authToken; // Get token from your AuthManager
-
-    final response = await http.post(
-      Uri.parse('https://wk.up.railway.app/polls/${widget.poll.id}/vote/'),
-      headers: {
-        'Authorization': 'Token $authToken',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'poll': widget.poll.id, // Assuming poll ID available in widget.poll.id
-        'choice': voteChoiceToString(choice),
-      }),
-    );
-
-    if (response.statusCode == HttpStatus.created) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Vote submitted successfully!')),
-      );
-    } else {
-      print('Response Status: ${response.statusCode}');
-      print('Response Body: ${response.body}');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error submitting vote.')),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     String? authToken = authManager.authToken;
@@ -301,22 +352,6 @@ class _PollDetailsScreenState extends State<PollDetailsScreen> {
                 ),
               ),
               SizedBox(height: 20),
-              if (authToken != null) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment
-                      .spaceEvenly, // To evenly distribute space between buttons
-                  children: <Widget>[
-                    ElevatedButton(
-                      child: Text('Yes'),
-                      onPressed: () => _submitVote(VoteChoice.YES),
-                    ),
-                    ElevatedButton(
-                      child: Text('No'),
-                      onPressed: () => _submitVote(VoteChoice.NO),
-                    ),
-                  ],
-                ),
-              ],
             ],
           ),
         ),
