@@ -31,30 +31,43 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
-        final String token = responseData[
-            'key']; // Assuming 'key' is the field that contains the token. Adjust if different.
+        final String token = responseData['key'];
         AuthManager().setAuthToken(token);
 
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content:
-              Text('Login successful! Token: $token'), // Displaying token here
-          backgroundColor: Colors.green,
-        ));
-        // Navigate to Polls Screen after a short delay to let the SnackBar show
+        if (mounted) {
+          // Check if the widget is still mounted
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Login successful! Token: $token'),
+            backgroundColor: Colors.green,
+          ));
+        }
+
         Future.delayed(Duration(seconds: 2), () {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => PollsScreen()),
-          );
+          if (mounted) {
+            // Check if the widget is still mounted before navigating
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => PollsScreen()),
+            );
+          }
         });
       } else {
         print('Response body: ${response.body}');
-        throw Exception('Login failed');
+        if (mounted) {
+          // Check if the widget is still mounted
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('Login failed'), backgroundColor: Colors.red),
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login failed'), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        // Check if the widget is still mounted
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Login failed'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 

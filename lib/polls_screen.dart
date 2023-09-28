@@ -245,7 +245,7 @@ class Poll {
   final String question;
   final String voteDeadline;
   final String pollDeadline;
-  final String correctAnswer;
+  final String? correctAnswer;
   final String? proofLink;
   final double yesPercentage;
   final double noPercentage;
@@ -267,7 +267,7 @@ class Poll {
       question: json['question'],
       voteDeadline: json['vote_deadline'],
       pollDeadline: json['poll_deadline'],
-      correctAnswer: json['correct_answer'],
+      correctAnswer: json['correct_answer'], // It can be null
       proofLink: json['proof_link'],
       yesPercentage: json['yes_percentage'].toDouble(),
       noPercentage: json['no_percentage'].toDouble(),

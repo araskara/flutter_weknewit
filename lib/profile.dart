@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -84,6 +85,33 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
     if (response.statusCode != 200) {
       throw Exception('Failed to update the poll');
+    }
+  }
+
+  Future<void> createObjection(
+      int pollId, int voteId, String reason, String proofLink) async {
+    final authToken = authManager.authToken;
+    final url = Uri.parse('https://wk.up.railway.app/objection/objections/');
+    final headers = {
+      'Authorization': 'Token $authToken',
+      'Content-Type': 'application/json',
+    };
+    final body = jsonEncode({
+      'poll': pollId,
+      'vote': voteId,
+      'reason': reason,
+      'proof_link': proofLink,
+    });
+
+    print('Sending request to $url with body: $body and headers: $headers');
+
+    final response = await http.post(url, headers: headers, body: body);
+
+    print(
+        'Received response with status code: ${response.statusCode} and body: ${response.body}');
+
+    if (response.statusCode != 201) {
+      throw Exception('Failed to create objection');
     }
   }
 
@@ -249,6 +277,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                               Text('Proof: ${vote['proof_link']}'),
                           ],
                         ),
+                        trailing:
+                            vote['choice'] != vote['poll']['correct_answer']
+                                ? IconButton(
+                                    icon: Icon(Icons.error_outline),
+                                    onPressed: () {
+                                      showObjectionDialog(
+                                          vote['poll']['id'], vote['id']);
+                                    },
+                                  )
+                                : null,
                       );
                     }).toList(),
                   ),
@@ -272,6 +310,82 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           child: Icon(Icons.add),
         ),
       ),
+    );
+  }
+
+  void showObjectionDialog(int pollId, int voteId) {
+    final _formKey = GlobalKey<FormState>();
+    String reason = '';
+    String proofLink = '';
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Raise Objection'),
+          content: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: ListBody(
+                children: <Widget>[
+                  TextFormField(
+                    decoration: InputDecoration(labelText: 'Reason'),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a reason';
+                      }
+                      return null;
+                    },
+                    onSaved: (value) {
+                      reason = value!;
+                    },
+                  ),
+                  TextFormField(
+                    decoration: InputDecoration(labelText: 'Proof Link'),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a proof link';
+                      }
+                      return null;
+                    },
+                    onSaved: (value) {
+                      proofLink = value!;
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Submit'),
+              onPressed: () async {
+                if (_formKey.currentState!.validate()) {
+                  _formKey.currentState!.save();
+                  try {
+                    await createObjection(pollId, voteId, reason, proofLink);
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Objection raised successfully')),
+                    );
+                  } catch (error) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to raise objection')),
+                    );
+                  }
+                }
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }
