@@ -19,6 +19,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
   String _category = '';
   List<String> _categories = [
     'Politics',
+    'Economy',
     'Sport',
     'Science',
     'Art',
@@ -52,8 +53,8 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
         body: jsonEncode({
           'question': _question,
           'category': _category,
-          'reference_link': _referenceLink,
-          'proof_link': _proofLink,
+          //'reference_link': _referenceLink,
+          //'proof_link': _proofLink,
           'poll_deadline': _pollDeadline.toIso8601String(),
           'vote_deadline': _voteDeadline.toIso8601String(),
         }),
@@ -114,7 +115,7 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                   return null;
                 },
               ),
-              TextFormField(
+              /*TextFormField(
                 decoration:
                     InputDecoration(labelText: 'Reference Link (optional)'),
                 onSaved: (value) {
@@ -125,8 +126,8 @@ class _CreatePollScreenState extends State<CreatePollScreen> {
                 decoration: InputDecoration(labelText: 'Proof Link (optional)'),
                 onSaved: (value) {
                   _proofLink = value!;
-                },
-              ),
+                }, 
+              ), */
               ElevatedButton(
                 child: Text(_voteDeadline == null
                     ? 'Pick Vote Deadline'

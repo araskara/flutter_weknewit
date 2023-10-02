@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:learningdart/profile.dart';
 import 'package:learningdart/scoreslist.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:learningdart/ExpiredPollsScreen.dart';
 
 enum VoteChoice { YES, NO }
 
@@ -30,6 +31,16 @@ class PollsScreen extends StatefulWidget {
 
 class _PollsScreenState extends State<PollsScreen> {
   late Future<List<Poll>> _pollsFuture;
+  List<String> _categories = [
+    'All',
+    'Politics',
+    'Economy',
+    'Sport',
+    'Science',
+    'Art',
+    'others'
+  ]; // add more as needed
+
   bool _isLoggedIn = false;
   final _formKey = GlobalKey<FormState>();
   final authManager = AuthManager();
@@ -106,135 +117,151 @@ class _PollsScreenState extends State<PollsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Polls List'),
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
-              ),
-              child: Text(
-                'Drawer Header',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
+    return DefaultTabController(
+      length: _categories.length,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('Polls List'),
+          bottom: TabBar(
+            isScrollable: true,
+            tabs: _categories
+                .map((String category) => Tab(text: category))
+                .toList(),
+          ),
+        ),
+        drawer: Drawer(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: <Widget>[
+              DrawerHeader(
+                decoration: BoxDecoration(
+                  color: Colors.blue,
+                ),
+                child: Text(
+                  'Drawer Header',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                  ),
                 ),
               ),
-            ),
-            ListTile(
-              title: Text('Logout'),
-              onTap: _logout,
-            ),
-            ListTile(
-              title: Text('My Profile'),
-              onTap: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                  builder: (context) => UserProfileScreen(),
-                ));
-              },
-            ),
-            ListTile(
-              title: Text('Scores List'),
-              onTap: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                  builder: (context) => UsersListScore(),
-                ));
-              },
-            ),
-          ],
+              ListTile(
+                title: Text('Logout'),
+                onTap: _logout,
+              ),
+              ListTile(
+                title: Text('My Profile'),
+                onTap: () {
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => UserProfileScreen(),
+                  ));
+                },
+              ),
+              ListTile(
+                title: Text('Expired Polls'),
+                onTap: () {
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => ExpiredPollsScreen(),
+                  ));
+                },
+              ),
+            ],
+          ),
         ),
-      ),
-      body: FutureBuilder<List<Poll>>(
-        future: _pollsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('No polls found'));
-          } else {
-            return ListView.builder(
-              itemCount: snapshot.data!.length,
-              itemBuilder: (context, index) {
-                final poll = snapshot.data![index];
-                return ListTile(
-                  contentPadding:
-                      EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
-                  title: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    PollDetailsScreen(poll: poll),
+        body: TabBarView(
+          children: _categories.map((String category) {
+            return FutureBuilder<List<Poll>>(
+              future: _pollsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Center(child: Text('No polls found'));
+                } else {
+                  List<Poll> displayedPolls;
+                  if (category == 'All') {
+                    displayedPolls = snapshot.data!;
+                  } else {
+                    displayedPolls = snapshot.data!
+                        .where((poll) => poll.category == category)
+                        .toList();
+                  }
+
+                  return ListView.builder(
+                    itemCount: displayedPolls.length,
+                    itemBuilder: (context, index) {
+                      final poll = displayedPolls[index];
+                      return ListTile(
+                        contentPadding: EdgeInsets.symmetric(
+                            vertical: 10.0, horizontal: 16.0),
+                        title: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          PollDetailsScreen(poll: poll),
+                                    ),
+                                  );
+                                },
+                                child: Text(
+                                  poll.question,
+                                  style: TextStyle(fontSize: 16.0),
+                                ),
                               ),
-                            );
-                          },
-                          child: Text(
-                            poll.question,
-                            style: TextStyle(
-                                fontSize: 16.0), // adjust the style as needed
-                          ),
+                            ),
+                            Builder(
+                              builder: (context) {
+                                String? authToken = AuthManager().authToken;
+                                if (authToken != null) {
+                                  return Row(
+                                    children: [
+                                      ElevatedButton(
+                                        child: Text('Yes'),
+                                        onPressed: () => _submitVote(
+                                            VoteChoice.YES, poll.id),
+                                      ),
+                                      SizedBox(width: 8.0),
+                                      ElevatedButton(
+                                        child: Text('No'),
+                                        onPressed: () =>
+                                            _submitVote(VoteChoice.NO, poll.id),
+                                      ),
+                                    ],
+                                  );
+                                } else {
+                                  return Container();
+                                }
+                              },
+                            ),
+                          ],
                         ),
-                      ),
-                      Builder(
-                        builder: (context) {
-                          String? authToken = AuthManager().authToken;
-                          if (authToken != null) {
-                            return Row(
-                              children: [
-                                ElevatedButton(
-                                  child: Text('Yes'),
-                                  onPressed: () =>
-                                      _submitVote(VoteChoice.YES, poll.id),
-                                ),
-                                SizedBox(
-                                  width:
-                                      8.0, // to give some space between the buttons
-                                ),
-                                ElevatedButton(
-                                  child: Text('No'),
-                                  onPressed: () =>
-                                      _submitVote(VoteChoice.NO, poll.id),
-                                ),
-                              ],
-                            );
-                          } else {
-                            return Container();
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                );
+                      );
+                    },
+                  );
+                }
               },
             );
-          }
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => CreatePoll.CreatePollScreen(),
-            ),
-          );
-
-          // Refresh polls when back from the CreatePollScreen
-          setState(() {
-            _pollsFuture = fetchPolls();
-          });
-        },
-        child: Icon(Icons.add),
+          }).toList(),
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () async {
+            await Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => CreatePoll.CreatePollScreen(),
+              ),
+            );
+            setState(() {
+              _pollsFuture = fetchPolls();
+            });
+          },
+          child: Icon(Icons.add),
+        ),
       ),
     );
   }
@@ -249,6 +276,7 @@ class Poll {
   final String? proofLink;
   final double yesPercentage;
   final double noPercentage;
+  final String category;
 
   Poll({
     required this.id,
@@ -259,6 +287,7 @@ class Poll {
     this.proofLink,
     required this.yesPercentage,
     required this.noPercentage,
+    required this.category,
   });
 
   factory Poll.fromJson(Map<String, dynamic> json) {
@@ -271,6 +300,7 @@ class Poll {
       proofLink: json['proof_link'],
       yesPercentage: json['yes_percentage'].toDouble(),
       noPercentage: json['no_percentage'].toDouble(),
+      category: json['category'],
     );
   }
 }
