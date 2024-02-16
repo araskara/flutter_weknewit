@@ -10,6 +10,9 @@ import 'package:learningdart/profile.dart';
 import 'package:learningdart/scoreslist.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:learningdart/ExpiredPollsScreen.dart';
+import 'package:learningdart/notifications_page.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:rflutter_alert/rflutter_alert.dart';
 
 enum VoteChoice { YES, NO }
 
@@ -55,32 +58,80 @@ class _PollsScreenState extends State<PollsScreen> {
     }
   }
 
-  Future<void> _submitVote(VoteChoice choice, int pollId) async {
+  void _submitVote(VoteChoice choice, int pollId, Poll poll) async {
     _voteChoice = choice;
+
+    // Check the user's voting status
+    await _checkVotingStatusForPoll(pollId, poll);
+
+    // Ensure _voteChoice is not null and poll.hasVoted is not true
+    if (_voteChoice != null && !(poll.hasVoted ?? false)) {
+      final authToken = authManager.authToken;
+
+      final response = await http.post(
+        Uri.parse('https://wk.up.railway.app/polls/$pollId/vote/'),
+        headers: {
+          'Authorization': 'Token $authToken',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'poll': pollId,
+          'choice': voteChoiceToString(choice),
+        }),
+      );
+
+      // Handle response
+      if (response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Vote submitted successfully!')),
+        );
+
+        // Update the poll state
+        poll.hasVoted = true;
+        setState(() {
+          poll.hasVoted = true;
+        });
+      } else {
+        // Handle errors or other status codes
+        var responseBody = jsonDecode(response.body);
+        var errorMessage = responseBody['error'] ?? 'Error submitting vote.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
+        );
+      }
+    }
+  }
+
+  Future<void> _checkVotingStatusForPoll(int pollId, Poll poll) async {
     final authToken = authManager.authToken;
 
-    final response = await http.post(
-      Uri.parse('https://wk.up.railway.app/polls/$pollId/vote/'),
+    final response = await http.get(
+      Uri.parse('https://wk.up.railway.app/polls/$pollId/check_voting_status/'),
       headers: {
         'Authorization': 'Token $authToken',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode({
-        'poll': pollId,
-        'choice': voteChoiceToString(choice),
-      }),
     );
 
-    // Handle response
-    if (response.statusCode == HttpStatus.created) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Vote submitted successfully!')),
-      );
+    if (response.statusCode == 200) {
+      // '200' is the 'OK' status code
+      final data = json.decode(response.body);
+      final hasVoted = data['hasVoted'] as bool?;
+
+      // Update poll.hasVoted with true, false, or null from the response
+      poll.hasVoted = hasVoted ?? false;
+
+      // Explicitly check if hasVoted is true
+      if (hasVoted == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('You have already voted for this poll!')),
+        );
+      }
     } else {
-      print('Response Status: ${response.statusCode}');
-      print('Response Body: ${response.body}');
+      // Handle errors or other status codes
       var responseBody = jsonDecode(response.body);
-      var errorMessage = responseBody['error'] ?? 'Error submitting vote.';
+      var errorMessage =
+          responseBody['error'] ?? 'Error checking voting status.';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(errorMessage)),
       );
@@ -158,6 +209,22 @@ class _PollsScreenState extends State<PollsScreen> {
                 },
               ),
               ListTile(
+                title: Text('notifications'),
+                onTap: () {
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => NotificationPage(),
+                  ));
+                },
+              ),
+              ListTile(
+                title: Text('Score List'),
+                onTap: () {
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => UsersListScore(),
+                  ));
+                },
+              ),
+              ListTile(
                 title: Text('Expired Polls'),
                 onTap: () {
                   Navigator.of(context).push(MaterialPageRoute(
@@ -219,21 +286,27 @@ class _PollsScreenState extends State<PollsScreen> {
                               builder: (context) {
                                 String? authToken = AuthManager().authToken;
                                 if (authToken != null) {
-                                  return Row(
-                                    children: [
-                                      ElevatedButton(
-                                        child: Text('Yes'),
-                                        onPressed: () => _submitVote(
-                                            VoteChoice.YES, poll.id),
-                                      ),
-                                      SizedBox(width: 8.0),
-                                      ElevatedButton(
-                                        child: Text('No'),
-                                        onPressed: () =>
-                                            _submitVote(VoteChoice.NO, poll.id),
-                                      ),
-                                    ],
-                                  );
+                                  return Row(children: [
+                                    ElevatedButton(
+                                      child: Text('Yes'),
+                                      onPressed: // (_voteChoice != null || (poll.hasVoted ?? false))
+                                          // ? null // Disable the button if the user has voted or already checked voting status
+                                          // :
+                                          () => _submitVote(
+                                              VoteChoice.YES, poll.id, poll),
+                                    ),
+                                    SizedBox(width: 8.0),
+                                    ElevatedButton(
+                                      child: Text('No'),
+                                      onPressed: // (_voteChoice != null || (poll.hasVoted ?? false))
+                                          // ? null // Disable if already voted or choice made
+                                          // :
+                                          () => _submitVote(
+                                              VoteChoice.NO,
+                                              poll.id,
+                                              poll), // Pass 'poll' here
+                                    ),
+                                  ]);
                                 } else {
                                   return Container();
                                 }
@@ -277,6 +350,7 @@ class Poll {
   final double yesPercentage;
   final double noPercentage;
   final String category;
+  bool? hasVoted;
 
   Poll({
     required this.id,
@@ -288,6 +362,7 @@ class Poll {
     required this.yesPercentage,
     required this.noPercentage,
     required this.category,
+    this.hasVoted,
   });
 
   factory Poll.fromJson(Map<String, dynamic> json) {
@@ -301,6 +376,7 @@ class Poll {
       yesPercentage: json['yes_percentage'].toDouble(),
       noPercentage: json['no_percentage'].toDouble(),
       category: json['category'],
+      hasVoted: json['hasVoted'] ?? null,
     );
   }
 }
